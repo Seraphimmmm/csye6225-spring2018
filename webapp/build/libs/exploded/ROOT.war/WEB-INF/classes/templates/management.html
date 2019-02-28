@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+
+<body>
+
+<h2 th:text="${error}"></h2>
+<p>
+<img th:src="${imageUrl}"  th:width="200" th:height="200"/><br/>
+</p>
+
+
+<div>
+    <form method="post" enctype="multipart/form-data" action="/upload">
+        <table>
+            <tr>
+                <td>
+                    <input th:type="file" name="file"/>
+                </td>
+            </tr>
+            <tr>
+                <td><input th:type="submit" value="upload"/><br/></td>
+            </tr>
+        </table>
+    </form>
+
+</div>
+
+<div>
+    <form method="post" enctype="multipart/form-data" action="/delete">
+        <table>
+
+            <tr>
+                <td><input th:type="submit" value="delete"/><br/></td>
+            </tr>
+        </table>
+    </form>
+
+</div>
+<div>
+    <form method="post" action="/updateString">
+        <table>
+            <tr><td><textarea th:name="Aboutme" th:cols="40" th:rows="5" th:inline="text"
+                              maxlength="140" onchange="this.value=this.value.substring(0, 140)"
+                              onkeydown="this.value=this.value.substring(0, 140)"
+                              onkeyup="this.value=this.value.substring(0, 140)">[[${aboutMe}]]</textarea>
+            </td></tr>
+            <tr><td><input th:type="submit" th:value="save" /></td></tr>
+        </table>
+    </form>
+</div>
+<h3><a th:href="@{/index.html}">log out</a> </h3>
+</body>
+</html>

@@ -1,0 +1,447 @@
+{
+"AWSTemplateFormatVersion":"2010-09-09",
+  "Description": "Launch EC2 Instance - CSYE 6225 Spring 2018",
+  "Resources": {
+    "MyInstanceProfile":{
+       "Type": "AWS::IAM::InstanceProfile",
+       "Properties": {
+          "Roles": [ "CodeDeployEC2ServiceRole" ],
+        "InstanceProfileName": "MyInstanceProfile"
+                }
+         },  
+         "LaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+              "ImageId": {"Ref":"ImageId"},
+              "InstanceType": {"Ref":"InstanceType"},
+              "KeyName": "csye6225",
+              "AssociatePublicIpAddress": "true",
+           
+              "SecurityGroups": [
+                {
+                  "Ref": "InstanceSecurityGroup"
+                }
+              ],
+              "IamInstanceProfile":{"Ref":"MyInstanceProfile"},
+              
+ 
+          "UserData":{
+            "Fn::Base64": {
+                "Fn::Join": [
+                    "\n",
+                    [
+                        "#!/bin/bash -xe ",
+                        "sudo apt-get update ",
+                        "sudo apt-get install openjdk-8-jdk -y",
+                        "sudo apt-get install ruby -y ",
+                        "sudo apt-get install wget -y ",
+                        "sudo apt-get install python -y ",
+                        "sudo apt-get update ",
+                        "sudo wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install ",
+                        "sudo chmod +x ./install ",
+                        "sudo ./install auto ",
+                        "sudo service codedeploy-agent start ",
+                        "sudo apt-get install tomcat8 -y ",
+                        
+                                  
+                        "sudo apt-get update",
+
+                        "sudo touch /tmp/awslogs.conf",
+
+                        "sudo chmod a+rwx /tmp/awslogs.conf",
+
+                        "sudo echo '[general]' > /tmp/awslogs.conf",
+
+                        "sudo echo 'state_file= /var/awslogs/agent-state' >> /tmp/awslogs.conf",
+
+                        "sudo echo '[logstream1]' >> /tmp/awslogs.conf",
+
+                        "sudo echo 'file = /var/log/tomcat8/catalina.out' >> /tmp/awslogs.conf",
+
+                        "sudo echo 'log_group_name = csye6225-webapp' >> /tmp/awslogs.conf",
+
+                        "sudo echo 'log_stream_name = csye6225-webapp' >> /tmp/awslogs.conf",
+
+                        "sudo echo 'datetime_format = %d/%b/%Y:%H:%M:%S' >> /tmp/awslogs.conf",
+
+                        "curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O",
+
+                        {
+
+                            "Fn::Join": [
+
+                                " ",
+
+                                [
+
+                                    "sudo python ./awslogs-agent-setup.py -n -r",
+
+                                    {
+
+                                        "Ref": "AWS::Region"
+
+                                    },
+
+                                    "-c /tmp/awslogs.conf || error_exit 'Failed to run CloudWatch Logs agent setup'"
+
+                                ]
+
+                            ]
+
+                        },
+
+                        "cd /etc/systemd/system",
+
+                        "sudo touch awslogs.service",
+
+                        "sudo chmod a+rwx awslogs.service",
+
+                        "sudo echo '[Unit]' >> awslogs.service",
+
+                        "sudo echo 'Description=Service for CloudWatch Logs agent' >> awslogs.service",
+
+                        "sudo echo 'After=rc-local.service' >> awslogs.service",
+
+                        "sudo echo '[Service]' >> awslogs.service",
+
+                        "sudo echo 'Type=simple' >> awslogs.service",
+
+                        "sudo echo 'Restart=always' >> awslogs.service",
+
+                        "sudo echo 'KillMode=process' >> awslogs.service",
+
+                        "sudo echo 'TimeoutSec=infinity' >> awslogs.service",
+
+                        "sudo echo 'PIDFile=/var/awslogs/state/awslogs.pid' >> awslogs.service",
+
+                        "sudo echo 'ExecStart=/var/awslogs/bin/awslogs-agent-launcher.sh --start --background --pidfile $PIDFILE --user awslogs --chuid awslogs &amp;' >> awslogs.service",
+
+                        "sudo echo '[Install]' >> awslogs.service",
+
+                        "sudo echo 'WantedBy=multi-user.target' >> awslogs.service",
+
+                        "sudo systemctl start awslogs.service",
+
+                        "sudo systemctl enable awslogs.service",
+                        "sudo apt-get install mysql-client-core-5.7 -y",
+                        "sudo apt-get update ",
+                        "sudo echo \"JAVA_OPTS=\\\"\\${JAVA_OPTS} -Dspring.datasource.username=csye6225master -Dspring.datasource.password=csye6225password  -Dspring.profiles.active=aws\\\"\" >> /etc/default/tomcat8 ",
+                        {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    "echo 'JAVA_OPTS=\"${JAVA_OPTS} -Dspring.datasource.url=\\\"jdbc:mysql://",
+                                    {
+                                        "Fn::GetAtt": [
+                                            "myRDS",
+                                                    "Endpoint.Address"
+                                                ]
+                                            },
+                                            ":3306/csye6225\\\"\"' >> /etc/default/tomcat8"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "mysql -h ",
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "myRDS",
+                                                            "Endpoint.Address"
+                                                        ]
+                                                    },
+                                                    "-P 3306 -u csye6225master -p"
+                                                ]
+                                            ]
+                                        },
+                                 "csye6225password",
+                                "create database csye6225;",
+                                "\\q", 
+                                "sudo service tomcat8 restart "
+                            ]
+                        ]
+                    }
+                }
+    }
+},
+        "DBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties":{
+                "AttributeDefinitions" : [ 
+                    {"AttributeName":"Id",
+                    "AttributeType":"S"}
+                ],
+                "KeySchema": [{
+                    "AttributeName":"Id",
+                    "KeyType" : "HASH"
+                }
+            ],
+                "ProvisionedThroughput" : {
+                  "ReadCapacityUnits" : {"Ref":"DBUnit"},
+                  "WriteCapacityUnits" : {"Ref":"DBUnit"}
+              },
+                "TableName" : {"Ref":"DBTableName"}
+            }
+         },
+         "S3Bucket" : {
+             "Type" : "AWS::S3::Bucket",
+             "Properties" : {
+                 "BucketName" : {
+                     "Ref":"bucketName"
+                 },
+                 "AccessControl":"PublicReadWrite"
+             }
+         },
+         "ApplicationLoadBalancer" : {
+            "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties" : {
+                "Name":"MyLoadBalancer",
+                "SecurityGroups":[
+                    {"Ref":"InstanceSecurityGroup"}
+                ],
+              "Subnets" : [{ "Ref" : "PublicSubnet"},{"Ref":"PublicSubnet2"}]
+            }
+          },
+      
+          "ALBListener" : {
+            "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties" : {
+              "Certificates":[{"CertificateArn":"arn:aws:acm:us-east-1:778543725770:certificate/0bc39675-9bbd-4bde-82d7-f793cf21ae82"}],  
+              "DefaultActions" : [{
+                "Type" : "forward",
+                "TargetGroupArn" : { "Ref" : "HttpTargetGroup" }
+              }],
+              "LoadBalancerArn" : { "Ref" : "ApplicationLoadBalancer" },
+              "Port" : "443",
+              "Protocol" : "HTTPS"
+            }
+          },
+          "HTTPListener" : {
+            "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties" : {
+              "DefaultActions" : [{
+                "Type" : "forward",
+                "TargetGroupArn" : { "Ref" : "HttpTargetGroup" }
+              }],
+              "LoadBalancerArn" : { "Ref" : "ApplicationLoadBalancer" },
+              "Port" : "80",
+              "Protocol" : "HTTP"
+            }
+          },
+          "HttpTargetGroup" : {
+            "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties" : {
+              "Name":"MyTargetGroup",
+              "HealthCheckIntervalSeconds" : 30,
+              "HealthCheckTimeoutSeconds" : 5,
+              "HealthyThresholdCount" : 3,
+              "Port" : "8080",
+              "Protocol" : "HTTP",
+              "UnhealthyThresholdCount" : 5,
+              "VpcId" : {"Ref" : "vpc"}
+            }
+          },
+          
+        "myRecordSet":{
+            "Type":"AWS::Route53::RecordSet",
+            "Properties" : {
+                "AliasTarget" : {
+                    "DNSName":{"Fn::GetAtt":["ApplicationLoadBalancer","DNSName"]},
+                    "HostedZoneId":{"Fn::GetAtt":[
+                        "ApplicationLoadBalancer","CanonicalHostedZoneID"
+                    ]}
+                },
+                "Name":"csye6225-spring2018-huangre.me.",
+                "HostedZoneName":"csye6225-spring2018-huangre.me.",
+                "Type":"A"
+            },
+            "DependsOn":"WebServerGroup"
+        },
+         
+          "WebServerGroup" : {
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+               
+               "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
+               "VPCZoneIdentifier" : [{ "Ref" : "PublicSubnet" }],
+               "MinSize" : "3",
+               "MaxSize" : "7",
+               "Cooldown":"60",
+               "DesiredCapacity":"3",
+               "TargetGroupARNs":[{"Ref":"HttpTargetGroup"}],
+               "Tags" : [ {
+                "Key" : "Name",
+                "Value" : "MyInstance",
+                "PropagateAtLaunch" : "true"
+             }]
+            }
+         },
+        
+         
+         "WebServerScaleUpPolicy": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+              "AdjustmentType": "ChangeInCapacity",
+              "AutoScalingGroupName": {
+                "Ref": "WebServerGroup"
+              },
+              "Cooldown": "60",
+              "ScalingAdjustment": "1"
+            }
+          },
+          "WebServerScaleDownPolicy": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+              "AdjustmentType": "ChangeInCapacity",
+              "AutoScalingGroupName": {
+                "Ref": "WebServerGroup"
+              },
+              "Cooldown": "60",
+              "ScalingAdjustment": "-1"
+            }
+          },
+          "CPUAlarmHigh": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+              "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+              "MetricName": "CPUUtilization",
+              "Namespace": "AWS/EC2",
+              "Statistic": "Average",
+              "Period": "300",
+              "EvaluationPeriods": "2",
+              "Threshold": "90",
+              "AlarmActions": [
+                {
+                  "Ref": "WebServerScaleUpPolicy"
+                }
+              ],
+              "Dimensions": [
+                {
+                  "Name": "AutoScalingGroupName",
+                  "Value": {
+                    "Ref": "WebServerGroup"
+                  }
+                }
+              ],
+              "ComparisonOperator": "GreaterThanThreshold"
+            }
+          },
+          "CPUAlarmLow": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+              "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+              "MetricName": "CPUUtilization",
+              "Namespace": "AWS/EC2",
+              "Statistic": "Average",
+              "Period": "300",
+              "EvaluationPeriods": "2",
+              "Threshold": "70",
+              "AlarmActions": [
+                {
+                  "Ref": "WebServerScaleDownPolicy"
+                }
+              ],
+              "Dimensions": [
+                {
+                  "Name": "AutoScalingGroupName",
+                  "Value": {
+                    "Ref": "WebServerGroup"
+                  }
+                }
+              ],
+              "ComparisonOperator": "LessThanThreshold"
+            }
+          },
+    
+        "mySubnetGroup" : {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription" : "private subnet group",
+                "DBSubnetGroupName" : "bestSubnetGroup",
+               "SubnetIds": [{"Ref":"privateSubnet"},{"Ref":"privateSubnet2"}]
+             }
+        },
+        "myRDS" : {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties" : {
+        "AllocatedStorage" : {"Ref":"RDSstorage"},
+        "Engine" : "MySQL",
+        "EngineVersion": {"Ref":"MySQLVersion"},
+        "DBInstanceClass":{"Ref":"RDSDbInstanceClass"},
+        "MultiAZ":"false",
+        "DBInstanceIdentifier" : {"Ref":"RDSInstanceI"},
+        "MasterUsername":{"Ref":"masterUser"},
+        "VPCSecurityGroups":[{"Ref":"RdsSecurityGroup"}],
+        "MasterUserPassword":{"Ref":"masterPassword"},
+        "DBSubnetGroupName" : {"Ref":"mySubnetGroup"},
+        "PubliclyAccessible" : "false",
+        "DBName":{"Ref":"DBTableName"}
+        
+        }
+        } 
+    
+  },
+    "Parameters" : {
+        "vpc":{
+            "Type":"String"
+        },
+        "ImageId":{
+            "Type":"String"
+        },
+        
+        "Az":{
+            "Type":"String"
+        },
+        "InstanceType":{
+            "Type":"String"
+        },
+        "DBUnit" :{
+            "Type":"String"
+        },
+        "DBTableName" : {
+            "Type":"String"
+        },
+        "bucketName" : {
+            "Type" : "String"
+        },
+        "privateSubnet" : {
+            "Type" : "String"
+        },
+        "privateSubnet2" : {
+            "Type" : "String"
+        },
+        "RDSstorage":{
+            "Type":"String"
+        },
+        "MySQLVersion":{
+            "Type":"String"
+        },
+        "RDSDbInstanceClass":{
+            "Type":"String"
+        },
+        "RDSInstanceI":{
+            "Type":"String"
+        },
+        "masterUser":{
+            "Type":"String"
+        },
+        "masterPassword":{
+            "Type":"String"
+        },
+        "InstanceSecurityGroup":{
+            "Type":"String"
+        },
+        "RdsSecurityGroup":{
+            "Type":"String"
+        },
+        "PublicSubnet":{
+            "Type":"String"
+        },
+        "PublicSubnet2":{
+            "Type":"String"
+        }
+    }
+  }
+

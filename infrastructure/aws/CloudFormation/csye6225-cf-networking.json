@@ -1,0 +1,233 @@
+{
+     "AWSTemplateFormatVersion":"2010-09-09",
+  "Description": "Launch EC2 Instance - CSYE 6225 Spring 2018",
+  "Parameters" : {
+   "VPCcb":{
+       "Type":"String"
+   },
+   "routeDcb":{
+       "Type":"String"
+   },
+   "publicSubnetCb":{
+       "Type":"String"
+   },
+   "privateSubnetCb":{
+       "Type" :"String"
+   },
+   "privateSubnetAz":{
+       "Type":"String"
+   },
+   "privateSubnetCb2":{
+       "Type":"String"
+   },
+   "privateSubnetAz2":{
+       "Type":"String"
+   },
+   "SGIp":{
+       "Type":"String"
+   },
+   "FromP":{
+       "Type":"String"
+   },
+   "FromP2":{
+      "Type":"String"
+   },
+   "FromP3":{
+      "Type":"String"
+   },
+   "FromP4":{
+    "Type":"String"
+   },
+   "FromP5":{
+       "Type":"String"
+   },
+   "CirIp":{
+       "Type":"String"
+   }
+  },
+  "Resources": {
+     "myVPC": {
+         "Type": "AWS::EC2::VPC",
+         "Properties" : {
+             "CidrBlock" : {"Ref":"VPCcb"},
+             "EnableDnsSupport" : "true",
+             "EnableDnsHostnames" : "true",
+             "Tags" : [{"Key":"Name",
+                "Value": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        {
+                          "Ref": "AWS::StackName"
+                        },
+                        "-csye6225-vpc"
+                      ]
+                    ]
+                }
+            }
+          ]
+         }
+     },
+     "myInternetGateway" : {
+         "Type" : "AWS::EC2::InternetGateway"
+     },
+     "AttachGateway" : {
+         "Type" : "AWS::EC2::VPCGatewayAttachment",
+         "Properties" :{
+             "VpcId" : {"Ref" : "myVPC"},
+             "InternetGatewayId" : {"Ref" : "myInternetGateway"}
+         }
+     },
+     "myPublicRouteTable" : {
+        "Type" : "AWS::EC2::RouteTable",
+        "Properties" : {
+             "VpcId" : {"Ref":"myVPC"},
+             "Tags" : [{"Key":"Name",
+                "Value":{
+                    "Fn::Join": ["" , [
+                        {
+                            "Ref":"AWS::StackName"
+                        },
+                        "-csye6225-public-route-table"
+                    ]
+                ]
+            }
+        }
+    ]
+}      
+    },
+    "myPrivateRouteTable" : {
+        "Type" : "AWS::EC2::RouteTable",
+        "Properties" : {
+             "VpcId" : {"Ref":"myVPC"},
+             "Tags" : [{"Key":"Name",
+                "Value":{
+                    "Fn::Join": ["" , [
+                        {
+                            "Ref":"AWS::StackName"
+                        },
+                        "-csye6225-private-route-table"
+                    ]
+                ]
+            }
+        }
+    ]
+     }      
+    },
+     "myRoute" : {
+         "Type" : "AWS::EC2::Route",
+         "Properties" : {
+             "RouteTableId" : {"Ref" : "myPublicRouteTable"},
+             "DestinationCidrBlock" : {"Ref":"routeDcb"},
+             "GatewayId" : {"Ref":"myInternetGateway"}
+         }
+     },
+     "publicSubnet" : {
+         "Type": "AWS::EC2::Subnet",
+         "Properties" : {
+             "CidrBlock": {"Ref":"publicSubnetCb"},
+             "AvailabilityZone": {"Ref":"privateSubnetAz2"},
+             "VpcId":{"Ref":"myVPC"},
+             "MapPublicIpOnLaunch":"true"
+         }
+     },
+     "privateSubnet" : {
+         "Type": "AWS::EC2::Subnet",
+         "Properties": {
+             "CidrBlock" : {"Ref":"privateSubnetCb"},
+             "AvailabilityZone": {"Ref":"privateSubnetAz"},
+             "VpcId":{"Ref":"myVPC"}
+         }
+     },
+     "privateSubnet2" : {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+            "CidrBlock" : {"Ref":"privateSubnetCb2"},
+            "AvailabilityZone": {"Ref":"privateSubnetAz2"},
+            "VpcId":{"Ref":"myVPC"}
+        }
+     },
+     "publicSubnetAttachment": {
+         "Type": "AWS::EC2::SubnetRouteTableAssociation",
+         "Properties": {
+             "RouteTableId":{
+                 "Ref":"myPublicRouteTable"
+             },
+             "SubnetId":{
+                 "Ref":"publicSubnet"
+             }
+         }
+     },
+     "privateSubnetAttachment": {
+         "Type":"AWS::EC2::SubnetRouteTableAssociation",
+         "Properties": {
+             "RouteTableId":{
+                 "Ref":"myPrivateRouteTable"
+                             },
+            "SubnetId":{
+                "Ref":"privateSubnet"
+                }
+         }
+     },
+     "privateSubnetAttachment2": {
+        "Type":"AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+            "RouteTableId":{
+                "Ref":"myPrivateRouteTable"
+                            },
+           "SubnetId":{
+               "Ref":"privateSubnet2"
+               }
+        }
+    },
+     "InstanceSecurityGroup" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+        "Properties" : {
+           "GroupDescription" : "Allow http to client host",
+           "VpcId" : {"Ref" : "myVPC"},
+           "SecurityGroupIngress" : [{
+                 "IpProtocol" : {"Ref":"SGIp"},
+                 "FromPort" : {"Ref":"FromP"},
+                 "ToPort" : {"Ref":"FromP"},
+                 "CidrIp" : {"Ref":"CirIp"}
+              },
+              {"IpProtocol" : {"Ref":"SGIp"},
+              "FromPort" : {"Ref":"FromP2"},
+              "ToPort" : {"Ref":"FromP2"},
+              "CidrIp" : {"Ref":"CirIp"}
+            },
+            {"IpProtocol" : {"Ref":"SGIp"},
+            "FromPort" : {"Ref":"FromP3"},
+            "ToPort" : {"Ref":"FromP3"},
+            "CidrIp" : {"Ref":"CirIp"}
+
+            },
+            {
+                "IpProtocol" : {"Ref":"SGIp"},
+                "FromPort" : {"Ref":"FromP5"},
+                "ToPort" : {"Ref":"FromP5"},
+                "CidrIp" : {"Ref":"CirIp"}
+
+            }],
+            "Tags" : [{"Key":"Name","Value":"csye6225-webapp"}]
+        }
+     },
+     
+    
+     "RDSSecurityGroup" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+        "Properties" : {
+           "GroupDescription" : "Allow http to client host",
+           "VpcId" : {"Ref" : "myVPC"},
+           "SecurityGroupIngress" : [{
+                 "IpProtocol" : {"Ref":"SGIp"},
+                 "FromPort" : {"Ref":"FromP4"},
+                 "ToPort" : {"Ref":"FromP4"},
+                 "SourceSecurityGroupId":{"Ref":"InstanceSecurityGroup"}
+
+              }],
+              "Tags" : [{"Key":"Name","Value":"csye6225-rds"}]
+        }
+     }   
+   }
+}

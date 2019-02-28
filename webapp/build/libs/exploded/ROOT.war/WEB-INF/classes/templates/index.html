@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:replace="fragments/header :: header"/>
+<body>
+<div th:replace="fragments/navigation :: navigation"/>
+
+
+<!-- Page Content -->
+<div class="container">
+    <p>
+        Welcome to CSYE 6225 Spring 2018 Semester!!!
+    </p>
+    <a th:href="@{/register}" >Register</a> |
+    <a th:href="@{/logIn}">Log In</a>
+</div>
+<div>
+    <h3><span th:text="${searchFail}"></span></h3>
+    <form method="post"  th:object="${user}" action="/search">
+        <table>
+            <tr>
+                <td><input th:type="text" th:field="*{emailAddress}" /></td>
+                <td><input th:type="submit" th:value="search" /></td>
+            </tr>
+        </table>
+    </form>
+</div>
+<!-- /.container -->
+
+<div th:replace="fragments/footer :: footer"/>
+</body>
+</html>
+
+

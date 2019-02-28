@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:replace="fragments/header :: header"/>
+<body>
+<div th:replace="fragments/navigation :: navigation"/>
+<h1>Log In</h1>
+<h1><span th:text="${lresult}"></span></h1>
+<form th:action="@{/logIn}" th:object="${user}" method="post">
+    <table>
+        <tr>
+            <td th:text="'Email Address'"></td>
+            <td><input type="text" th:field="*{emailAddress}"/></td>
+        </tr>
+        <tr>
+            <td th:text="'Input password'"></td>
+            <td><input type="password" th:field="*{password}"/></td>
+        </tr>
+    </table>
+    <input type="submit" th:value="login" />
+</form>
+<h2><a th:href="@{/forget}">forget password</a></h2>
+</body>
+</html>

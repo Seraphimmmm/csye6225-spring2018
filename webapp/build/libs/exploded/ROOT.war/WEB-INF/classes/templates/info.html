@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>profile</title>
+
+</head>
+<body>
+<h1 th:text="${visitName}"></h1>
+<div>
+    <p>
+        <img th:src="${imageUrl}" th:width="200" th:height="200"/><br/>
+    </p>
+</div>
+<div>
+    <form method="get"  action="/logIn">
+        <br/> <input type="submit" value="Edit your account"/>
+    </form>
+</div>
+<h2>About Me</h2>
+<span th:text="${AboutMe}"></span>
+</body>
+</html>

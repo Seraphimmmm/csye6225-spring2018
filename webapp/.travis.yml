@@ -1,0 +1,14 @@
+language: java
+jdk:
+- openjdk8
+
+sudo: false
+install: true
+
+script:
+- ./gradlew war
+
+notifications:
+email:
+recipients:
+- huang.re@husky.neu.edu
